@@ -6,54 +6,74 @@
         xmlns:uc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
         mc:Ignorable="d" Title="Example2" Height="800" Width="800">
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="0.3*"/>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="0.2*"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+        <Popup x:Name="FullScreenPopup" AllowsTransparency="False">
 
-        <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Vertical" x:Name="test" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-            <ComboBox x:Name="cmbCaptureCard" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" SelectedIndex="0"/>
-            <ComboBox x:Name="cmbCaptureMode" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" SelectedIndex="3">
-                <ComboBoxItem Content="Preview"/>
-                <ComboBoxItem Content="Record"/>
-                <ComboBoxItem Content="Preview and Record"/>
-                <ComboBoxItem Content="File Preview"/>
-            </ComboBox>
-            <CheckBox x:Name="chkStrategy2" Content="Strategy 2" IsChecked="True" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Background="White" Foreground="Red" />
-            <CheckBox x:Name="chkHWAcceleration" Content="HW acceleration" IsChecked="True" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Background="White" Foreground="Red" />
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
-                <Label Content="Iterations:" />
-                <TextBox x:Name="txtIterations" Width="50" Height="20" Text="5" TextChanged="TxtIterations_TextChanged"/>
+            <Grid x:Name="popupContainerGrid" >
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"></RowDefinition>
+                </Grid.RowDefinitions>
+            </Grid>
+        </Popup>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="0.3*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.2*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Vertical" x:Name="test" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                <ComboBox x:Name="cmbCaptureCard" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" SelectedIndex="0"/>
+                <ComboBox x:Name="cmbCaptureMode" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" SelectedIndex="3">
+                    <ComboBoxItem Content="Preview"/>
+                    <ComboBoxItem Content="Record"/>
+                    <ComboBoxItem Content="Preview and Record"/>
+                    <ComboBoxItem Content="File Preview"/>
+                </ComboBox>
+                <CheckBox x:Name="chkStrategy2" Content="Strategy 2" IsChecked="True" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Background="White" Foreground="Red" />
+                <CheckBox x:Name="chkHWAcceleration" Content="HW acceleration" IsChecked="True" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Background="White" Foreground="Red" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
+                    <Label Content="Iterations:" />
+                    <TextBox x:Name="txtIterations" Width="50" Height="20" Text="5" TextChanged="TxtIterations_TextChanged"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
+                    <Label Content="Duration:" />
+                    <TextBox x:Name="txtDuration" Width="50"  Height="20" Text="50" TextChanged="TxtDuration_TextChanged"/>
+                </StackPanel>
+                <StackPanel Orientation="Vertical" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
+                    <Label Content="#transcode" />
+                    <TextBox x:Name="txtTranscode" Width="130" Height="150" Text="vcodec=h264,vb=1500,fps=25,scale=0,acodec=none,ab=128,channels=2,threads=4,deinterlace=true,high-priority=true" TextWrapping="Wrap" TextChanged="TxtTranscode_TextChanged"/>
+                </StackPanel>
+                <Button x:Name="btnPlay" Content="PLAY" Height="25" Width="50" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Click="PlayButton_Click" />
+                <Button x:Name="btnStop" Content="STOP" Height="25" Width="50" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Click="StopButton_Click" IsEnabled="False" />
+                <Label x:Name="lblStatus" Content="Status: STOPPED" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Foreground="Red" Background="White"/>
+                <Button x:Name="btnSnapshot" Content="Take Snapshot" Height="25" Width="100" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Click="BtnSnapshot_Click"  IsEnabled="False" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
+                    <Label Content="Current Iteration:" />
+                    <TextBlock x:Name="txtCurrentIteraion" Width="30" Height="20" Text="00"/>
+                </StackPanel>
+                <Button x:Name="btnAbort" Content="ABORT TEST" Height="25" Width="80" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Click="BtnAbort_Click" />
             </StackPanel>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
-                <Label Content="Duration:" />
-                <TextBox x:Name="txtDuration" Width="50"  Height="20" Text="20" TextChanged="TxtDuration_TextChanged"/>
-            </StackPanel>
-            <StackPanel Orientation="Vertical" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
-                <Label Content="#transcode" />
-                <TextBox x:Name="txtTranscode" Width="130" Height="150" Text="vcodec=h264,vb=1500,fps=25,scale=0,acodec=none,ab=128,channels=2,threads=4,deinterlace=true,high-priority=true" TextWrapping="Wrap" TextChanged="TxtTranscode_TextChanged"/>
-            </StackPanel>
-            <Button x:Name="btnPlay" Content="PLAY" Height="25" Width="50" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Click="PlayButton_Click" />
-            <Button x:Name="btnStop" Content="STOP" Height="25" Width="50" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Click="StopButton_Click" IsEnabled="False" />
-            <Label x:Name="lblStatus" Content="Status: STOPPED" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Foreground="Red" Background="White"/>
-            <Button x:Name="btnSnapshot" Content="Take Snapshot" Height="25" Width="100" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Click="BtnSnapshot_Click"  IsEnabled="False" />
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
-                <Label Content="Current Iteration:" />
-                <TextBlock x:Name="txtCurrentIteraion" Width="30" Height="20" Text="00"/>
-            </StackPanel>
-            <Button x:Name="btnAbort" Content="ABORT TEST" Height="25" Width="80" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Click="BtnAbort_Click" />
-        </StackPanel>
-        <GridSplitter Grid.Column="1" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="2" Background="Silver"/>
-        <Grid  Grid.Row="0" Grid.Column="2">
-            <uc:VideoView x:Name="VideoView" Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-            <Canvas Background="Red" Opacity="0.1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            <GridSplitter Grid.Column="1" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="2" Background="Silver"/>
+            <Grid  Grid.Row="0" Grid.Column="2" x:Name="primaryGrid" >
+                <Grid x:Name="VideoGrid">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="50"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Button Content="[FULL]" Margin="10,0" Grid.Row="0" Foreground="Black" Click="Button_Click" Height="50" Width="50" VerticalAlignment="Top" HorizontalAlignment="Left" Background="Red" Opacity="1"/>
+                <uc:VideoView Grid.Row="1"  x:Name="VideoView" Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <Grid Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <Canvas  Grid.Row="0"  Visibility="Visible" Background="LightPink" Opacity="0.5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                 MouseLeftButtonUp="Canvas_MouseLeftButtonUp"/>
+                    </Grid>
+                </uc:VideoView>
+            </Grid>
+            </Grid>
+            <TextBox Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3" x:Name="txtLogger" AcceptsReturn="True" IsReadOnly="True" Text="Logger Messages" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
         </Grid>
-        
-        <TextBox Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3" x:Name="txtLogger" AcceptsReturn="True" IsReadOnly="True" Text="Logger Messages" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
     </Grid>
 </Window>

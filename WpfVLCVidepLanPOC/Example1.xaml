@@ -8,7 +8,6 @@
         mc:Ignorable="d"
         Title="Example1" Height="450" Width="800">
     <Grid>
-       <uc:VideoView x:Name="VideoView" Panel.ZIndex="1" />
-        <Button VerticalAlignment="Bottom" HorizontalAlignment="Center" Height="100" Width="100" Content="MY BUTTON" Panel.ZIndex="0" />
+       <uc:VideoView x:Name="VideoView" />
     </Grid>
 </Window>
