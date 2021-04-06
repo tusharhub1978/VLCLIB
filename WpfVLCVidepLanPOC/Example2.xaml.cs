@@ -21,12 +21,16 @@ namespace WpfVLCVidepLanPOC
         MediaPlayer _mediaPlayerRecord;
         StringBuilder mLogger = new StringBuilder();
 
-        const string kdefaultTranscode = "#transcode{vcodec=h264,vb=1500,fps=25,scale=0,acodec=none,ab=128,channels=2,threads=4,deinterlace=true,high-priority=true}";
+        const string kdefTranscodeText = "vcodec=h264,vb=1500,fps=25,scale=0,acodec=none,ab=128,channels=2,threads=4,high-priority=true";
+
+        //private string kdefaultTranscode = 
+        // #transcode{vcodec=mp4v,vb=1500,fps=25,scale=0,acodec=none,ab=128,channels=2,threads=4,high-priority=true}
         int mIterations = 1;
         int mDuration = 10;
         int mCurrentIteration = 0;
 
-        string mTranscodeValue = kdefaultTranscode;
+        string mTranscodeValue;
+
         DispatcherTimer _VideoIterationTimer;
 
         public Example2()
@@ -43,13 +47,14 @@ namespace WpfVLCVidepLanPOC
             //    Foreground = new SolidColorBrush(Colors.Red)
             //};
             //test.Children.Add(label);
+            mTranscodeValue = "#transcode{" + kdefTranscodeText + "}";
 
-            _libVLC = new LibVLC();
+            txtTranscode.Text = kdefTranscodeText;
+            _libVLC = new LibVLC(new string[] { "--no-snapshot-preview", "--file-caching=10000", "--h264-fps=60", "--avcodec-fast", "--avcodec-threads=1", "--no-osd", "--avcodec-hw=d3d11va", "--no-video-title", "--no-audio" });
+
+            
             _mediaPlayer = new MediaPlayer(_libVLC);
             _mediaPlayerRecord = new MediaPlayer(_libVLC);
-
-            _mediaPlayer.SnapshotTaken += _mediaPlayer_SnapshotTaken;
-            _mediaPlayerRecord.SnapshotTaken += _mediaPlayerRecord_SnapshotTaken;
 
             _libVLC.Log += _libVLC_Log;
 
@@ -66,17 +71,12 @@ namespace WpfVLCVidepLanPOC
             {
                 cmbCaptureCard.Items.Add(filter.Name);
             }
+
+            btnReverse.Content = "[ << ]";
+            btnForward.Content = "[ >> ]";
         }
 
-        private void _mediaPlayerRecord_SnapshotTaken(object sender, MediaPlayerSnapshotTakenEventArgs e)
-        {
-            MessageBox.Show($"Snapshot taken @ {e.Filename} ");
-        }
-
-        private void _mediaPlayer_SnapshotTaken(object sender, MediaPlayerSnapshotTakenEventArgs e)
-        {
-            MessageBox.Show($"Snapshot taken @ {e.Filename} ");
-        }
+        private object lockObject = new object();
 
         int nLogMessages = 0;
         private void _libVLC_Log(object sender, LogEventArgs e)
@@ -86,14 +86,21 @@ namespace WpfVLCVidepLanPOC
             //Console.WriteLine(logMsg);
 
             ++nLogMessages;
-            mLogger.AppendLine(logMsg);
+            lock(lockObject)
+            {
+                mLogger.AppendLine(logMsg);
+            }
 
-            if(nLogMessages % 100 == 0)
+            if (nLogMessages % 10 == 0)
             {
                 this.Dispatcher.Invoke(() => {
-                    txtLogger.Text = txtLogger.Text + mLogger.ToString();
+                    lock (lockObject)
+                    {
+                        string logMessages = txtLogger.Text + mLogger.ToString();
+                        txtLogger.Text = logMessages;
+                        mLogger.Clear();
+                    }
                     txtLogger.ScrollToEnd();
-                    mLogger.Clear();
                 });
             }
         }
@@ -117,6 +124,7 @@ namespace WpfVLCVidepLanPOC
                 _mediaPlayerRecord.Dispose();
             }
 
+            _libVLC.Log -= _libVLC_Log;
             _mediaPlayer.Stop();
             _mediaPlayer.Dispose();
             _libVLC.Dispose();
@@ -124,6 +132,8 @@ namespace WpfVLCVidepLanPOC
 
         void StopButton_Click(object sender, RoutedEventArgs e)
         {
+            if (VideoView.MediaPlayer == null) return;
+
             if (VideoView.MediaPlayer.IsPlaying)
             {
                 VideoView.MediaPlayer.Stop();
@@ -137,10 +147,16 @@ namespace WpfVLCVidepLanPOC
             btnStop.IsEnabled = false;
             btnSnapshot.IsEnabled = false;
 
-            txtLogger.Text = txtLogger.Text + mLogger.ToString();
-            txtLogger.ScrollToEnd();
 
-            mLogger.Clear();
+            this.Dispatcher.Invoke(() => {
+                lock (lockObject)
+                {
+                    string logMessages = txtLogger.Text + mLogger.ToString();
+                    txtLogger.Text = logMessages;
+                    mLogger.Clear();
+                }
+                txtLogger.ScrollToEnd();
+            });
         }
 
         private void RecordTimerCallback(object sender, EventArgs e)
@@ -173,12 +189,15 @@ namespace WpfVLCVidepLanPOC
         {
             try
             {
-                mLogger.Clear();
+                lock (lockObject)
+                {
+                    mLogger.Clear();
+                }
 
                 if (!VideoView.MediaPlayer.IsPlaying && (chkStrategy2.IsChecked.Value == false || cmbCaptureMode.SelectedIndex == 0 || cmbCaptureMode.SelectedIndex == 2))
                 {
                     // For Playback Media file
-                    //using (var media = new Media(_libVLC, new Uri("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")))
+                    //using (var media = new Media(_libVLCPreview, new Uri("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")))
 
                     // For Capture live feed from Camera device
                     using (var media = new Media(_libVLC, "dshow:// ", FromType.FromLocation))
@@ -197,7 +216,7 @@ namespace WpfVLCVidepLanPOC
 
                         media.AddOption(":live-caching=300");
                         media.AddOption(":dshow-aspect-ratio=4:3");
-
+                        media.AddOption(":dshow-adev=none");
                         var currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
                         string destination = Path.Combine(currentDirectory, GenerateNewFileName());
 
@@ -228,6 +247,8 @@ namespace WpfVLCVidepLanPOC
                         {
                             MessageBox.Show("Error in Playing...");
                         }
+                        // Introduce delay between Preview and Recording (especially in case of SimWare Virtual Camera [All-IN-ONE])
+                        Thread.Sleep(500);
                     }
                 }
 
@@ -251,6 +272,7 @@ namespace WpfVLCVidepLanPOC
 
                         media.AddOption(":live-caching=300");
                         media.AddOption(":dshow-aspect-ratio=4:3");
+                        media.AddOption(":dshow-adev=none");
 
                         var currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
                         string destination = Path.Combine(currentDirectory, GenerateNewFileName());
@@ -298,9 +320,17 @@ namespace WpfVLCVidepLanPOC
                 {
                     if (!VideoView.MediaPlayer.IsPlaying)
                     {
-                        using (var media = new Media(_libVLC, new Uri(@"C:\\Temp\\09-02-21_12-06-28.wmv")))
+                        string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_1.wmv");
+                        //string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_2.wmv");
+                        //string filePath = @"http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+                        Uri uriFilePath = new Uri(filePath);
+                        using (var media = new Media(_libVLC, uriFilePath))                        
                         {
-                            if(!VideoView.MediaPlayer.Play(media))
+                            //media.AddOption(":live-caching=4000");
+                            media.AddOption(":dshow-aspect-ratio=4:3");
+                            media.AddOption(":dshow-adev=none");
+
+                            if (!VideoView.MediaPlayer.Play(media))
                             {
                                 MessageBox.Show("Error in recording...");
                             }
@@ -311,6 +341,17 @@ namespace WpfVLCVidepLanPOC
             catch (Exception inException)
             {
                 MessageBox.Show(inException.Message);
+            }
+        }
+
+        private static string AssemblyDirectory
+        {
+            get
+            {
+                string codeBase = Assembly.GetExecutingAssembly().CodeBase;
+                UriBuilder uri = new UriBuilder(codeBase);
+                string path = Uri.UnescapeDataString(uri.Path);
+                return Path.GetDirectoryName(path);
             }
         }
 
@@ -379,7 +420,7 @@ namespace WpfVLCVidepLanPOC
             }
             else
             {
-                mTranscodeValue = kdefaultTranscode;
+                mTranscodeValue = "#transcode{" + kdefTranscodeText + "}";
             }
         }
 
@@ -394,11 +435,11 @@ namespace WpfVLCVidepLanPOC
 
                 if (_mediaPlayer != null && _mediaPlayer.IsPlaying)
                 {
-                    success = _mediaPlayer.TakeSnapshot(0, destination, 0, 0);
+                    success = _mediaPlayer.TakeSnapshot(0, destination, 1280, 1024);
                 }
                 else if (_mediaPlayerRecord != null && _mediaPlayerRecord.IsPlaying)
                 {
-                    success = _mediaPlayerRecord.TakeSnapshot(0, destination, 0, 0);
+                    success = _mediaPlayerRecord.TakeSnapshot(0, destination, 1280, 1024);
                 }
             }
             catch(Exception inException)
@@ -424,42 +465,40 @@ namespace WpfVLCVidepLanPOC
         }
 
         bool _isFullScreen = false;
+        WindowState oldWinState;
+        WindowStyle oldWinStyle;
+
         private void ExecuteFullScreen()
         {
-            bool isOpenFullScreenPopup = !_isFullScreen;
+            _isFullScreen = !_isFullScreen;
 
-            double width = this.ActualWidth;
-            double height = this.ActualHeight;
-
-            if (isOpenFullScreenPopup)
+            if(_isFullScreen)
             {
-                this.primaryGrid.Children.Remove(this.VideoGrid);
+                stackPanel.Visibility = Visibility.Collapsed;
+                gridSplitter.Visibility = Visibility.Collapsed;
 
-                this.popupContainerGrid.Children.Add(this.VideoGrid);
+                txtLogger.Visibility = Visibility.Collapsed;
 
-                // Open the popups
-                this.FullScreenPopup.IsOpen = true;
+                mainGrid.RowDefinitions.Remove(txtLoggerRowDef);
+                mainGrid.ColumnDefinitions.Remove(StackPanelColDef);
 
-                makePopupFullScreen(FullScreenPopup, this.VideoGrid);
-
-                width = SystemParameters.PrimaryScreenWidth;
-                height = SystemParameters.PrimaryScreenHeight;
-
+                oldWinState = WindowState;
+                oldWinStyle = WindowStyle;
+                WindowState = WindowState.Maximized;
+                WindowStyle = WindowStyle.None;
             }
             else
             {
-                // Close the popups
-                this.FullScreenPopup.IsOpen = false;
+                stackPanel.Visibility = Visibility.Visible;
+                gridSplitter.Visibility = Visibility.Visible;
 
-                this.popupContainerGrid.Children.Remove(this.VideoGrid);
+                txtLogger.Visibility = Visibility.Visible;
 
-                this.primaryGrid.Children.Add(this.VideoGrid);
-            }
-            _isFullScreen = isOpenFullScreenPopup;
+                mainGrid.RowDefinitions.Insert(1, txtLoggerRowDef);
+                mainGrid.ColumnDefinitions.Insert(0, StackPanelColDef);
 
-            if (this.VideoView.IsLoaded)
-            {
-                this.VideoView.RenderSize = new System.Windows.Size(width, height);
+                WindowState = oldWinState;
+                WindowStyle = oldWinStyle;
             }
         }
 
@@ -477,5 +516,59 @@ namespace WpfVLCVidepLanPOC
             }
         }
 
+        private int GetSeekPercent()
+        {
+            int nPercent = 10;
+            string seekPerecnt = txtSeekPercent.Text.Trim();
+            if (string.IsNullOrEmpty(seekPerecnt))
+            {
+                txtSeekPercent.Text = "10";
+                seekPerecnt = "10";
+            }
+
+            if (!Int32.TryParse(seekPerecnt, out nPercent))
+            {
+                nPercent = 10;
+            }
+
+            return nPercent;
+        }
+
+        private void Reverse_Click(object sender, RoutedEventArgs e)
+        {
+            int nPercent = GetSeekPercent();
+
+            long length = this._mediaPlayer.Length;
+            long timeMilleSeconds = length / nPercent;
+
+            long prevPosition = this._mediaPlayer.Time - timeMilleSeconds;
+            if (prevPosition >= 0)
+            {
+                this._mediaPlayer.Time = prevPosition;
+            }
+            else
+            {
+                this._mediaPlayer.Time = 0;
+            }
+        }
+
+
+        private void Forward_Click(object sender, RoutedEventArgs e)
+        {
+            int nPercent = GetSeekPercent();
+
+            long length = this._mediaPlayer.Length;
+            long timeMilleSeconds = length / nPercent;
+
+            long nextPosition = this._mediaPlayer.Time + timeMilleSeconds;
+            if (nextPosition <= length)
+            {
+                this._mediaPlayer.Time = nextPosition;
+            }
+            else
+            {
+                this._mediaPlayer.Time = length;
+            }
+        }
     }
 }

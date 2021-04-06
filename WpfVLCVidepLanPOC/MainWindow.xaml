@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <Button Content="Example 1" Width="100" Height="50" Margin="15" x:Name="Example1Btn"/>
-        <Button Content="Example 2" Width="100" Height="50" Margin="15" x:Name="Example2Btn" />
+        <Button Content="Example 1" Width="100" Height="50" Margin="15" x:Name="Example1Btn" Visibility="Collapsed"/>
+        <Button Content="VLC POC" Width="100" Height="50" Margin="15" x:Name="Example2Btn" />
     </StackPanel>
 </Window>
