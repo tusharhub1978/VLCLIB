@@ -57,16 +57,26 @@
             </StackPanel>
             <GridSplitter Grid.Column="1" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Stretch" Width="2" Background="Silver" x:Name="gridSplitter"/>
             <Grid Grid.Row="0" Grid.Column="2" x:Name="primaryGrid" >
-                <Grid x:Name="VideoGrid">
-                <uc:VideoView x:Name="VideoView" Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="20"/>
+                </Grid.RowDefinitions>
+                <Grid x:Name="VideoGrid" Grid.Row="0">
+                    <uc:VideoView x:Name="VideoView" Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                     <Grid Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                            <Canvas  Grid.Row="0"  Visibility="Visible" Background="White" Opacity="0.01" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                                 MouseLeftButtonUp="Canvas_MouseLeftButtonUp">
-                            </Canvas>
-                            <Button Content="[ {[]} ]" Margin="10" FontWeight="ExtraBold" Foreground="Black" Click="Button_Click" Height="50" Width="50" VerticalAlignment="Top" HorizontalAlignment="Left" Background="LightGray" Opacity="1" x:Name="buttonFull"/>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="50"/>
+                            </Grid.RowDefinitions>
+                            <Canvas  Grid.Row="0"  Visibility="Visible" Background="White" Opacity="0.01" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                            <Button Grid.Row="0" Content="[ {[]} ]" Margin="10" FontWeight="ExtraBold" Foreground="Black" Click="Button_Click" Height="50" Width="50" VerticalAlignment="Top" HorizontalAlignment="Left" Background="LightGray" Opacity="1" x:Name="buttonFull"/>
+                            <Label Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Content="{Binding VideoTimeString, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" Foreground="Red"/>
                         </Grid>
                 </uc:VideoView>
-            </Grid>
+                </Grid>
+                <Slider Grid.Row="1" x:Name="VideoSlider" Height="20" Background="Green" 
+                        IsMoveToPointEnabled="True" ValueChanged="VideoSlider_ValueChanged"
+                        Thumb.DragCompleted="VideoSlider_DragCompleted" Thumb.DragDelta="VideoSlider_DragDelta" Thumb.DragStarted="VideoSlider_DragStarted"/>
             </Grid>
             <Grid Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3" >
                 <TextBox x:Name="txtLogger" AcceptsReturn="True" IsReadOnly="True" Text="Preview Logger Messages" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />

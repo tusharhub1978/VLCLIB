@@ -1,6 +1,7 @@
 ﻿using DirectX.Capture;
 using LibVLCSharp.Shared;
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -14,7 +15,7 @@ using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace WpfVLCVidepLanPOC
 {
-    public partial class Example2 : Window
+    public partial class Example2 : Window, INotifyPropertyChanged
     {
         LibVLC _libVLC;
         MediaPlayer _mediaPlayer;
@@ -32,7 +33,22 @@ namespace WpfVLCVidepLanPOC
         string mTranscodeValue;
 
         DispatcherTimer _VideoIterationTimer;
+        DispatcherTimer _VideoPlaybackTimer;
+        private bool userIsDraggingSlider = false;
 
+        private string _VideoTimeString;
+        public string VideoTimeString
+        {
+            get { return _VideoTimeString; }
+            set { _VideoTimeString = value; raisePropertyChanged("VideoTimeString"); }
+        }
+
+        private double _VideoCurrentTime;
+        public double VideoCurrentTime
+        {
+            get { return _VideoCurrentTime; }
+            set { _VideoCurrentTime = value; raisePropertyChanged("VideoCurrentTime"); }
+        }
         public Example2()
         {
             InitializeComponent();
@@ -40,7 +56,7 @@ namespace WpfVLCVidepLanPOC
             Core.Initialize();
 
             //var label = new Label
-            //{                
+            //{
             //    Content = "TEST",
             //    HorizontalAlignment = HorizontalAlignment.Right,
             //    VerticalAlignment = VerticalAlignment.Bottom,
@@ -50,8 +66,12 @@ namespace WpfVLCVidepLanPOC
             mTranscodeValue = "#transcode{" + kdefTranscodeText + "}";
 
             txtTranscode.Text = kdefTranscodeText;
-            _libVLC = new LibVLC(new string[] { "--no-snapshot-preview", "--file-caching=10000", "--h264-fps=60", "--avcodec-fast", "--avcodec-threads=1", "--no-osd", "--avcodec-hw=d3d11va", "--no-video-title", "--no-audio" });
-
+            _libVLC = new LibVLC(new string[] { 
+                "--no-snapshot-preview", 
+                "--no-osd", 
+                "--avcodec-hw=d3d11va", 
+                "--no-video-title", 
+                "--no-audio"});
             
             _mediaPlayer = new MediaPlayer(_libVLC);
             _mediaPlayerRecord = new MediaPlayer(_libVLC);
@@ -74,6 +94,7 @@ namespace WpfVLCVidepLanPOC
 
             btnReverse.Content = "[ << ]";
             btnForward.Content = "[ >> ]";
+            this.DataContext = this;
         }
 
         private object lockObject = new object();
@@ -213,10 +234,11 @@ namespace WpfVLCVidepLanPOC
                             media.AddOption(":dshow-fps=30");
                         }
                         media.AddOption(":no-audio");
-
                         media.AddOption(":live-caching=300");
                         media.AddOption(":dshow-aspect-ratio=4:3");
+                        media.AddOption(":dshow-size=1280x1024");
                         media.AddOption(":dshow-adev=none");
+                        media.AddOption(":avcodec-hw=d3d11va");
                         var currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
                         string destination = Path.Combine(currentDirectory, GenerateNewFileName());
 
@@ -270,9 +292,13 @@ namespace WpfVLCVidepLanPOC
                             media.AddOption(":dshow-fps=30");
                         }
 
+                        media.AddOption(":no-audio");
                         media.AddOption(":live-caching=300");
                         media.AddOption(":dshow-aspect-ratio=4:3");
+                        media.AddOption(":dshow-size=1280x1024");
                         media.AddOption(":dshow-adev=none");
+                        media.AddOption(":avcodec-hw=d3d11va");
+
 
                         var currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
                         string destination = Path.Combine(currentDirectory, GenerateNewFileName());
@@ -322,18 +348,33 @@ namespace WpfVLCVidepLanPOC
                     {
                         string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_1.wmv");
                         //string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_2.wmv");
+
+                        //string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_3366c905-2ab1-4d24-ab67-0f7a6eb981d3.mp4");
                         //string filePath = @"http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
                         Uri uriFilePath = new Uri(filePath);
                         using (var media = new Media(_libVLC, uriFilePath))                        
                         {
-                            //media.AddOption(":live-caching=4000");
-                            media.AddOption(":dshow-aspect-ratio=4:3");
-                            media.AddOption(":dshow-adev=none");
+                            //media.AddOption(":file-caching=10000");
+                            //media.AddOption(":avcodec-fast");
+                            media.AddOption(":demux=avformat");
 
                             if (!VideoView.MediaPlayer.Play(media))
                             {
                                 MessageBox.Show("Error in recording...");
                             }
+
+                            if(_VideoPlaybackTimer != null)
+                            {
+                                _VideoPlaybackTimer.Stop();
+                            }
+
+                            _VideoPlaybackTimer = new DispatcherTimer();
+                            _VideoPlaybackTimer.Interval = TimeSpan.FromSeconds(1);
+                            _VideoPlaybackTimer.Tick += _VideoPlayback_Tick; ;
+
+                            VideoView.MediaPlayer.Playing += MediaPlayer_Playing;
+                            VideoView.MediaPlayer.Stopped += MediaPlayer_Stopped;
+                            //VideoView.MediaPlayer.TimeChanged += MediaPlayer_TimeChanged;
                         }
                     }
                 }
@@ -342,6 +383,52 @@ namespace WpfVLCVidepLanPOC
             {
                 MessageBox.Show(inException.Message);
             }
+        }
+
+        private void MediaPlayer_Stopped(object sender, EventArgs e)
+        {
+            _VideoPlaybackTimer.Stop();
+        }
+
+        private void _VideoPlayback_Tick(object sender, EventArgs e)
+        {
+            if(!userIsDraggingSlider && VideoView.MediaPlayer.IsPlaying)
+            {
+                this.Dispatcher.Invoke(() =>
+                {
+                    this.VideoSlider.Value = VideoView.MediaPlayer.Time / 1000;
+                    this.VideoCurrentTime = VideoView.MediaPlayer.Time / 1000;
+                    this.VideoTimeString = $"{this.VideoCurrentTime} : {this.VideoSlider.Maximum}";
+                });
+            }
+        }
+
+        private void MediaPlayer_TimeChanged(object sender, MediaPlayerTimeChangedEventArgs e)
+        {
+            this.Dispatcher.Invoke(() =>
+            {
+            });
+        }
+
+        private void MediaPlayer_Playing(object sender, EventArgs e)
+        {
+            this.Dispatcher.Invoke(() => {
+
+                this.VideoSlider.Minimum = 0;
+                if (VideoView.MediaPlayer.Media.Duration > 0)
+                    this.VideoSlider.Maximum = VideoView.MediaPlayer.Media.Duration / 1000;
+                else if (VideoView.MediaPlayer.Length > 0)
+                    this.VideoSlider.Maximum = VideoView.MediaPlayer.Length / 1000;
+
+                this.VideoSlider.Interval = 1000;
+
+                if(_VideoPlaybackTimer!=null && !_VideoPlaybackTimer.IsEnabled)
+                {
+                    _VideoPlaybackTimer.Start();
+
+                }
+                //this.VideoSlider.Value = 0.0;
+            });
         }
 
         private static string AssemblyDirectory
@@ -355,7 +442,7 @@ namespace WpfVLCVidepLanPOC
             }
         }
 
-        private static string GenerateNewFileName(string inExtension = "mp4")
+        private static string GenerateNewFileName(string inExtension = "wmv")
         {
             DateTime dtNow = DateTime.Now;
             string newFileName = dtNow.ToString("dd-MM-yy_hh-mm-ss");
@@ -459,11 +546,6 @@ namespace WpfVLCVidepLanPOC
             ExecuteFullScreen();
         }
 
-        private void Canvas_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            MessageBox.Show("Canvas_MouseLeftButtonUp");
-        }
-
         bool _isFullScreen = false;
         WindowState oldWinState;
         WindowStyle oldWinStyle;
@@ -552,7 +634,6 @@ namespace WpfVLCVidepLanPOC
             }
         }
 
-
         private void Forward_Click(object sender, RoutedEventArgs e)
         {
             int nPercent = GetSeekPercent();
@@ -569,6 +650,77 @@ namespace WpfVLCVidepLanPOC
             {
                 this._mediaPlayer.Time = length;
             }
+        }
+
+        private void VideoSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            return;
+            //if (cmbCaptureMode.SelectedIndex == 3)
+            //{
+            //    double newValueInSeconds = Math.Round((double)e.NewValue, 0);
+
+            //    long timeMilleSeconds = (long)newValueInSeconds * 1000;
+
+            //    if (VideoView.MediaPlayer.IsPlaying)
+            //    {
+            //        if (timeMilleSeconds < VideoView.MediaPlayer.Length && timeMilleSeconds < VideoView.MediaPlayer.Media.Duration)
+            //        {
+            //            VideoView.MediaPlayer.Time = timeMilleSeconds;
+            //        }
+            //        else
+            //        {
+            //            MessageBox.Show($"Seek value is {timeMilleSeconds}, Current value is : {VideoView.MediaPlayer.Time}, Video length : {VideoView.MediaPlayer.Length}, Media Duration : {VideoView.MediaPlayer.Media.Duration}");
+            //        }
+            //    }
+            //}
+        }
+
+        #region-----------------------------INotifyPropertyChanged Implementation
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void raisePropertyChanged(string propertyName)
+        {
+            System.ComponentModel.PropertyChangedEventHandler propertyChanged = this.PropertyChanged;
+            if ((propertyChanged != null))
+            {
+                propertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            }
+        }
+
+        #endregion-----------------------------INotifyPropertyChanged Implementation
+
+        private void VideoSlider_DragCompleted(object sender, DragCompletedEventArgs e)
+        {
+            userIsDraggingSlider = false;
+        }
+
+        private void VideoSlider_DragDelta(object sender, DragDeltaEventArgs e)
+        {
+            if (cmbCaptureMode.SelectedIndex == 3)
+            {
+                double newValueInSeconds = Math.Round((double)this.VideoSlider.Value, 0);
+
+                long timeMilleSeconds = (long)newValueInSeconds * 1000;
+
+                if (VideoView.MediaPlayer.IsPlaying)
+                {
+                    if (timeMilleSeconds < VideoView.MediaPlayer.Length && timeMilleSeconds < VideoView.MediaPlayer.Media.Duration)
+                    {
+                        //MessageBox.Show($"Seek value is {timeMilleSeconds}, Current value is : {VideoView.MediaPlayer.Time}, Video length : {VideoView.MediaPlayer.Length}, Media Duration : {VideoView.MediaPlayer.Media.Duration}");
+                        VideoView.MediaPlayer.Time = timeMilleSeconds;
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Seek value is {timeMilleSeconds}, Current value is : {VideoView.MediaPlayer.Time}, Video length : {VideoView.MediaPlayer.Length}, Media Duration : {VideoView.MediaPlayer.Media.Duration}");
+                    }
+                }
+            }
+        }
+
+        private void VideoSlider_DragStarted(object sender, DragStartedEventArgs e)
+        {
+            userIsDraggingSlider = true;
         }
     }
 }
