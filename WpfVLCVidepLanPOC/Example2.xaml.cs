@@ -67,13 +67,13 @@ namespace WpfVLCVidepLanPOC
             mTranscodeValue = "#transcode{" + kdefTranscodeText + "}";
 
             txtTranscode.Text = kdefTranscodeText;
-            _libVLC = new LibVLC(new string[] { 
-                "--no-snapshot-preview", 
-                "--no-osd", 
-                "--avcodec-hw=d3d11va", 
-                "--no-video-title", 
+            _libVLC = new LibVLC(new string[] {
+                "--no-snapshot-preview",
+                "--no-osd",
+                "--avcodec-hw=d3d11va",
+                "--no-video-title",
                 "--no-audio"});
-            
+
             _mediaPlayer = new MediaPlayer(_libVLC);
             _mediaPlayerRecord = new MediaPlayer(_libVLC);
 
@@ -88,7 +88,7 @@ namespace WpfVLCVidepLanPOC
             Filters filters = new Filters();
             FilterCollection filterCollection = filters.VideoInputDevices;
 
-            foreach(Filter filter in filterCollection)
+            foreach (Filter filter in filterCollection)
             {
                 cmbCaptureCard.Items.Add(filter.Name);
             }
@@ -108,14 +108,15 @@ namespace WpfVLCVidepLanPOC
             //Console.WriteLine(logMsg);
 
             ++nLogMessages;
-            lock(lockObject)
+            lock (lockObject)
             {
                 mLogger.AppendLine(logMsg);
             }
 
             if (nLogMessages % 10 == 0)
             {
-                this.Dispatcher.Invoke(() => {
+                this.Dispatcher.Invoke(() =>
+                {
                     lock (lockObject)
                     {
                         string logMessages = txtLogger.Text + mLogger.ToString();
@@ -137,9 +138,9 @@ namespace WpfVLCVidepLanPOC
 
         private void Example2_Unloaded(object sender, RoutedEventArgs e)
         {
-            if(_mediaPlayerRecord != null)
+            if (_mediaPlayerRecord != null)
             {
-                if(_mediaPlayerRecord.IsPlaying)
+                if (_mediaPlayerRecord.IsPlaying)
                 {
                     _mediaPlayerRecord.Stop();
                 }
@@ -170,7 +171,8 @@ namespace WpfVLCVidepLanPOC
             btnSnapshot.IsEnabled = false;
 
 
-            this.Dispatcher.Invoke(() => {
+            this.Dispatcher.Invoke(() =>
+            {
                 lock (lockObject)
                 {
                     string logMessages = txtLogger.Text + mLogger.ToString();
@@ -189,11 +191,11 @@ namespace WpfVLCVidepLanPOC
 
                 StopButton_Click(null, null);
 
-                if (mCurrentIteration < mIterations)                
+                if (mCurrentIteration < mIterations)
                 {
                     Thread.Sleep(1 * 1000);
                     // this will send the Start Command
-                    PlayButton_Click(null,null);
+                    PlayButton_Click(null, null);
                 }
                 else
                 {
@@ -230,7 +232,7 @@ namespace WpfVLCVidepLanPOC
                             media.AddOption(":dshow-config");
                             media.AddOption(":dshow-fps=10");
                         }
-                        else 
+                        else
                         {
                             media.AddOption(":dshow-fps=30");
                         }
@@ -309,7 +311,7 @@ namespace WpfVLCVidepLanPOC
                             string sTranscodeString = ":sout=" + mTranscodeValue + ":std{access=file,dst=" + destination + "}";
                             media.AddOption(sTranscodeString);
                             //media.AddOption(":sout=#transcode{vcodec=h264,vb=1500,fps=25,scale=0,acodec=none,ab=128,channels=2,threads=4,deinterlace=true,high-priority=true}:std{access=file,dst=" + destination + "}");
-                            if(chkHWAcceleration.IsChecked.Value ==  true)
+                            if (chkHWAcceleration.IsChecked.Value == true)
                             {
                                 media.AddOption(":avcodec-hw=d3d11va");
                             }
@@ -326,7 +328,7 @@ namespace WpfVLCVidepLanPOC
                 btnStop.IsEnabled = true;
                 btnSnapshot.IsEnabled = true;
 
-                if(cmbCaptureMode.SelectedIndex != 3)
+                if (cmbCaptureMode.SelectedIndex != 3)
                 {
                     if (_VideoIterationTimer == null)
                     {
@@ -353,7 +355,7 @@ namespace WpfVLCVidepLanPOC
 
                         string filePath = _filename;
                         Uri uriFilePath = new Uri(filePath);
-                        using (var media = new Media(_libVLC, uriFilePath))                        
+                        using (var media = new Media(_libVLC, uriFilePath))
                         {
                             media.AddOption(":file-caching=1");
                             media.AddOption(":avcodec-fast");
@@ -364,7 +366,7 @@ namespace WpfVLCVidepLanPOC
                                 MessageBox.Show("Error in recording...");
                             }
 
-                            if(_VideoPlaybackTimer != null)
+                            if (_VideoPlaybackTimer != null)
                             {
                                 _VideoPlaybackTimer.Stop();
                             }
@@ -389,11 +391,17 @@ namespace WpfVLCVidepLanPOC
         private void MediaPlayer_Stopped(object sender, EventArgs e)
         {
             _VideoPlaybackTimer.Stop();
+
+            this.Dispatcher.Invoke(() =>
+            {
+                VideoView.MediaPlayer.Playing -= MediaPlayer_Playing;
+                VideoView.MediaPlayer.Stopped -= MediaPlayer_Stopped;
+            });
         }
 
         private void _VideoPlayback_Tick(object sender, EventArgs e)
         {
-            if(!userIsDraggingSlider && VideoView.MediaPlayer.IsPlaying)
+            if (!userIsDraggingSlider && VideoView.MediaPlayer.IsPlaying)
             {
                 this.Dispatcher.Invoke(() =>
                 {
@@ -413,7 +421,8 @@ namespace WpfVLCVidepLanPOC
 
         private void MediaPlayer_Playing(object sender, EventArgs e)
         {
-            this.Dispatcher.Invoke(() => {
+            this.Dispatcher.Invoke(() =>
+            {
 
                 this.VideoSlider.Minimum = 0;
                 if (VideoView.MediaPlayer.Media.Duration > 0)
@@ -423,13 +432,12 @@ namespace WpfVLCVidepLanPOC
 
                 this.VideoSlider.Interval = 1000;
 
-                if(_VideoPlaybackTimer!=null && !_VideoPlaybackTimer.IsEnabled)
+                if (_VideoPlaybackTimer != null && !_VideoPlaybackTimer.IsEnabled)
                 {
                     _VideoPlaybackTimer.Start();
 
                 }
-                MessageBox.Show($"DUration: {VideoView.MediaPlayer.Media.Duration}, Length {VideoView.MediaPlayer.Length}");
-                //this.VideoSlider.Value = 0.0;
+                MessageBox.Show($"Duration: {VideoView.MediaPlayer.Media.Duration}, Length {VideoView.MediaPlayer.Length}");
             });
         }
 
@@ -456,7 +464,7 @@ namespace WpfVLCVidepLanPOC
         {
             int nResult = 0;
 
-            if(!int.TryParse(inStringValue, out nResult))
+            if (!int.TryParse(inStringValue, out nResult))
             {
                 nResult = 0;
             }
@@ -531,12 +539,12 @@ namespace WpfVLCVidepLanPOC
                     success = _mediaPlayerRecord.TakeSnapshot(0, destination, 1280, 1024);
                 }
             }
-            catch(Exception inException)
+            catch (Exception inException)
             {
                 MessageBox.Show(inException.Message);
             }
 
-            if(!success)
+            if (!success)
             {
                 MessageBox.Show("Snapshot failed");
             }
@@ -556,7 +564,7 @@ namespace WpfVLCVidepLanPOC
         {
             _isFullScreen = !_isFullScreen;
 
-            if(_isFullScreen)
+            if (_isFullScreen)
             {
                 stackPanel.Visibility = Visibility.Collapsed;
                 gridSplitter.Visibility = Visibility.Collapsed;
