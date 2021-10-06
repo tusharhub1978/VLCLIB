@@ -22,6 +22,7 @@ namespace WpfVLCVidepLanPOC
         MediaPlayer _mediaPlayerRecord;
         StringBuilder mLogger = new StringBuilder();
 
+        string _filename = "";
         const string kdefTranscodeText = "vcodec=h264,vb=1500,fps=25,scale=0,acodec=none,ab=128,channels=2,threads=4,high-priority=true";
 
         //private string kdefaultTranscode = 
@@ -235,7 +236,7 @@ namespace WpfVLCVidepLanPOC
                         }
                         media.AddOption(":no-audio");
                         media.AddOption(":live-caching=300");
-                        media.AddOption(":dshow-aspect-ratio=4:3");
+                        media.AddOption(":dshow-aspect-ratio=5:4");
                         media.AddOption(":dshow-size=1280x1024");
                         media.AddOption(":dshow-adev=none");
                         media.AddOption(":avcodec-hw=d3d11va");
@@ -294,11 +295,10 @@ namespace WpfVLCVidepLanPOC
 
                         media.AddOption(":no-audio");
                         media.AddOption(":live-caching=300");
-                        media.AddOption(":dshow-aspect-ratio=4:3");
+                        media.AddOption(":dshow-aspect-ratio=5:4");
                         media.AddOption(":dshow-size=1280x1024");
                         media.AddOption(":dshow-adev=none");
                         media.AddOption(":avcodec-hw=d3d11va");
-
 
                         var currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
                         string destination = Path.Combine(currentDirectory, GenerateNewFileName());
@@ -306,7 +306,8 @@ namespace WpfVLCVidepLanPOC
                         if (cmbCaptureMode.SelectedIndex == 1 || cmbCaptureMode.SelectedIndex == 2)
                         {
                             // Only recording mp4 using h264
-                            media.AddOption(":sout=" + mTranscodeValue + ":std{access=file,dst=" + destination + "}");
+                            string sTranscodeString = ":sout=" + mTranscodeValue + ":std{access=file,dst=" + destination + "}";
+                            media.AddOption(sTranscodeString);
                             //media.AddOption(":sout=#transcode{vcodec=h264,vb=1500,fps=25,scale=0,acodec=none,ab=128,channels=2,threads=4,deinterlace=true,high-priority=true}:std{access=file,dst=" + destination + "}");
                             if(chkHWAcceleration.IsChecked.Value ==  true)
                             {
@@ -346,16 +347,16 @@ namespace WpfVLCVidepLanPOC
                 {
                     if (!VideoView.MediaPlayer.IsPlaying)
                     {
-                        string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_1.wmv");
+                        //string filePath = Path.Combine(AssemblyDirectory, "Attempt1.mkv");
                         //string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_2.wmv");
-
                         //string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_3366c905-2ab1-4d24-ab67-0f7a6eb981d3.mp4");
-                        //string filePath = @"http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
+                        string filePath = _filename;
                         Uri uriFilePath = new Uri(filePath);
                         using (var media = new Media(_libVLC, uriFilePath))                        
                         {
-                            //media.AddOption(":file-caching=10000");
-                            //media.AddOption(":avcodec-fast");
+                            media.AddOption(":file-caching=1");
+                            media.AddOption(":avcodec-fast");
                             media.AddOption(":demux=avformat");
 
                             if (!VideoView.MediaPlayer.Play(media))
@@ -427,6 +428,7 @@ namespace WpfVLCVidepLanPOC
                     _VideoPlaybackTimer.Start();
 
                 }
+                MessageBox.Show($"DUration: {VideoView.MediaPlayer.Media.Duration}, Length {VideoView.MediaPlayer.Length}");
                 //this.VideoSlider.Value = 0.0;
             });
         }
@@ -442,7 +444,7 @@ namespace WpfVLCVidepLanPOC
             }
         }
 
-        private static string GenerateNewFileName(string inExtension = "wmv")
+        private static string GenerateNewFileName(string inExtension = "mp4")
         {
             DateTime dtNow = DateTime.Now;
             string newFileName = dtNow.ToString("dd-MM-yy_hh-mm-ss");
@@ -721,6 +723,11 @@ namespace WpfVLCVidepLanPOC
         private void VideoSlider_DragStarted(object sender, DragStartedEventArgs e)
         {
             userIsDraggingSlider = true;
+        }
+
+        private void txtFileName_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _filename = txtFileName.Text;
         }
     }
 }
