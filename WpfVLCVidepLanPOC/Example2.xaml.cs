@@ -349,6 +349,9 @@ namespace WpfVLCVidepLanPOC
                 {
                     if (!VideoView.MediaPlayer.IsPlaying)
                     {
+                        VideoView.MediaPlayer.Playing -= MediaPlayer_Playing;
+                        VideoView.MediaPlayer.Stopped -= MediaPlayer_Stopped;
+
                         //string filePath = Path.Combine(AssemblyDirectory, "Attempt1.mkv");
                         //string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_2.wmv");
                         //string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_3366c905-2ab1-4d24-ab67-0f7a6eb981d3.mp4");
@@ -394,9 +397,15 @@ namespace WpfVLCVidepLanPOC
 
             this.Dispatcher.Invoke(() =>
             {
-                VideoView.MediaPlayer.Playing -= MediaPlayer_Playing;
-                VideoView.MediaPlayer.Stopped -= MediaPlayer_Stopped;
-            });
+                if (cmbCaptureMode.SelectedIndex == 3)
+                {
+                    lblStatus.Content = "Status: STOPPED";
+                    btnPlay.IsEnabled = true;
+                    btnStop.IsEnabled = false;
+                    btnSnapshot.IsEnabled = true;
+                }
+
+            }, DispatcherPriority.Send);
         }
 
         private void _VideoPlayback_Tick(object sender, EventArgs e)
@@ -408,15 +417,12 @@ namespace WpfVLCVidepLanPOC
                     this.VideoSlider.Value = VideoView.MediaPlayer.Time / 1000;
                     this.VideoCurrentTime = VideoView.MediaPlayer.Time / 1000;
                     this.VideoTimeString = $"{this.VideoCurrentTime} : {this.VideoSlider.Maximum}";
-                });
+                }, DispatcherPriority.Send);
             }
         }
 
         private void MediaPlayer_TimeChanged(object sender, MediaPlayerTimeChangedEventArgs e)
         {
-            this.Dispatcher.Invoke(() =>
-            {
-            });
         }
 
         private void MediaPlayer_Playing(object sender, EventArgs e)
