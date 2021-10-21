@@ -85,12 +85,19 @@ namespace WpfVLCVidepLanPOC
             VideoView.Loaded += (sender, e) => VideoView.MediaPlayer = _mediaPlayer;
             Unloaded += Example2_Unloaded;
 
-            Filters filters = new Filters();
-            FilterCollection filterCollection = filters.VideoInputDevices;
-
-            foreach (Filter filter in filterCollection)
+            try
             {
-                cmbCaptureCard.Items.Add(filter.Name);
+                Filters filters = new Filters();
+                FilterCollection filterCollection = filters.VideoInputDevices;
+
+                foreach (Filter filter in filterCollection)
+                {
+                    cmbCaptureCard.Items.Add(filter.Name);
+                }
+            }
+            catch (Exception inException)
+            {
+                MessageBox.Show(inException.Message);
             }
 
             btnReverse.Content = "[ << ]";
@@ -342,22 +349,38 @@ namespace WpfVLCVidepLanPOC
                         _VideoIterationTimer.Interval = new TimeSpan(0, 0, mDuration);
                         _VideoIterationTimer.Start();
                     }
-                    mCurrentIteration++;
-                    txtCurrentIteraion.Text = mCurrentIteration.ToString();
                 }
                 else
                 {
                     if (!VideoView.MediaPlayer.IsPlaying)
                     {
+                        bAtoStopped = false;
                         VideoView.MediaPlayer.Playing -= MediaPlayer_Playing;
                         VideoView.MediaPlayer.Stopped -= MediaPlayer_Stopped;
 
-                        //string filePath = Path.Combine(AssemblyDirectory, "Attempt1.mkv");
-                        //string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_2.wmv");
-                        //string filePath = Path.Combine(AssemblyDirectory, "AttemptVideo_3366c905-2ab1-4d24-ab67-0f7a6eb981d3.mp4");
-
                         string filePath = _filename;
+
+                        int item = mCurrentIteration % 3;
+
+                        switch(item)
+                        {
+                            case 0:
+                                filePath = @"C:\Temp\AttemptVideo_1.mp4";
+                                break;
+                            case 1:
+                                filePath = @"C:\Temp\AttemptVideo_2.mp4";
+                                break;
+                            case 2:
+                                filePath = @"C:\Temp\AttemptVideo_3.mp4";
+                                break;
+                        }
+
                         Uri uriFilePath = new Uri(filePath);
+                        if (!File.Exists(filePath))
+                        {
+                            uriFilePath = new Uri(_filename);
+                        }
+
                         using (var media = new Media(_libVLC, uriFilePath))
                         {
                             //C:\Temp\AttemptVideo_ab4678de-89fc-4baa-bf87-08fe158ee438.mp4
@@ -377,7 +400,7 @@ namespace WpfVLCVidepLanPOC
                             }
 
                             _VideoPlaybackTimer = new DispatcherTimer();
-                            _VideoPlaybackTimer.Interval = TimeSpan.FromSeconds(1);
+                            _VideoPlaybackTimer.Interval = TimeSpan.FromMilliseconds(10);
                             _VideoPlaybackTimer.Tick += _VideoPlayback_Tick; ;
 
                             VideoView.MediaPlayer.Playing += MediaPlayer_Playing;
@@ -386,6 +409,9 @@ namespace WpfVLCVidepLanPOC
                         }
                     }
                 }
+
+                mCurrentIteration++;
+                txtCurrentIteraion.Text = mCurrentIteration.ToString();
             }
             catch (Exception inException)
             {
@@ -393,33 +419,45 @@ namespace WpfVLCVidepLanPOC
             }
         }
 
+        bool bAtoStopped = false;
         private void MediaPlayer_Stopped(object sender, EventArgs e)
         {
-            _VideoPlaybackTimer.Stop();
-
-            this.Dispatcher.Invoke(() =>
+            if (bAtoStopped == false)
             {
-                if (cmbCaptureMode.SelectedIndex == 3)
-                {
-                    lblStatus.Content = "Status: STOPPED";
-                    btnPlay.IsEnabled = true;
-                    btnStop.IsEnabled = false;
-                    btnSnapshot.IsEnabled = true;
-                }
-
-            }, DispatcherPriority.Send);
+                bAtoStopped = true;
+            }
         }
 
         private void _VideoPlayback_Tick(object sender, EventArgs e)
         {
             if (!userIsDraggingSlider && VideoView.MediaPlayer.IsPlaying)
             {
-                this.Dispatcher.Invoke(() =>
+                this.VideoSlider.Value = VideoView.MediaPlayer.Time / 1000;
+                this.VideoCurrentTime = VideoView.MediaPlayer.Time / 1000;
+                this.VideoTimeString = $"{this.VideoCurrentTime} : {this.VideoSlider.Maximum}";
+            }
+            else if (this.bAtoStopped == true)
+            {
+                VideoView.MediaPlayer.Stopped -= MediaPlayer_Stopped;
+                _VideoPlaybackTimer.Stop();
+                this.VideoView.MediaPlayer.Stop();
+                this.bAtoStopped = false;
+                lblStatus.Content = "Status: STOPPED";
+                btnPlay.IsEnabled = true;
+                btnStop.IsEnabled = false;
+                btnSnapshot.IsEnabled = true;
+
+                if (mCurrentIteration < mIterations)
                 {
-                    this.VideoSlider.Value = VideoView.MediaPlayer.Time / 1000;
-                    this.VideoCurrentTime = VideoView.MediaPlayer.Time / 1000;
-                    this.VideoTimeString = $"{this.VideoCurrentTime} : {this.VideoSlider.Maximum}";
-                }, DispatcherPriority.Send);
+                    //Thread.Sleep(1 * 1000);
+                    // this will send the Start Command
+                    PlayButton_Click(null, null);
+                }
+                else
+                {
+                    mCurrentIteration = 0;
+                }
+                txtCurrentIteraion.Text = mCurrentIteration.ToString();
             }
         }
 
@@ -445,7 +483,7 @@ namespace WpfVLCVidepLanPOC
                     _VideoPlaybackTimer.Start();
 
                 }
-                MessageBox.Show($"Duration: {VideoView.MediaPlayer.Media.Duration}, Length {VideoView.MediaPlayer.Length}");
+                //MessageBox.Show($"Duration: {VideoView.MediaPlayer.Media.Duration}, Length {VideoView.MediaPlayer.Length}");
             });
         }
 
@@ -480,6 +518,15 @@ namespace WpfVLCVidepLanPOC
             return nResult;
         }
 
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+
+            if (_VideoIterationTimer != null && _VideoIterationTimer.IsEnabled)
+                _VideoIterationTimer.Stop();
+            if (_VideoPlaybackTimer != null && _VideoPlaybackTimer.IsEnabled)
+                _VideoPlaybackTimer.Stop();
+        }
         protected override void OnClosed(EventArgs e)
         {
             VideoView.Dispose();
@@ -505,7 +552,11 @@ namespace WpfVLCVidepLanPOC
 
         private void BtnAbort_Click(object sender, RoutedEventArgs e)
         {
-            _VideoIterationTimer.Stop();
+            if(_VideoIterationTimer != null && _VideoIterationTimer.IsEnabled)
+                _VideoIterationTimer.Stop();
+            if (_VideoPlaybackTimer != null && _VideoPlaybackTimer.IsEnabled)
+                _VideoPlaybackTimer.Stop();
+
             StopButton_Click(null, null);
             btnPlay.IsEnabled = true;
             btnStop.IsEnabled = false;
