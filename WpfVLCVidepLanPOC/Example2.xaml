@@ -41,7 +41,7 @@
                 </StackPanel>
                 <StackPanel Orientation="Vertical" VerticalAlignment="Bottom" HorizontalAlignment="Stretch">
                     <Label Content="#transcode" />
-                    <TextBox x:Name="txtTranscode" Width="130" Height="150" Text="vcodec=h264,vb=1500,fps=25,scale=0,acodec=none,ab=128,channels=2,threads=4,deinterlace=true,high-priority=true" TextWrapping="Wrap" TextChanged="TxtTranscode_TextChanged"/>
+                    <TextBox x:Name="txtTranscode" Width="130" Height="150" Text="venc=x264{keyint=10},vcodec=h264,vb=1500,fps=25,scale=0,acodec=none,ab=128,channels=2,threads=4,deinterlace=true,high-priority=true" TextWrapping="Wrap" TextChanged="TxtTranscode_TextChanged"/>
                 </StackPanel>
                 <Button x:Name="btnPlay" Content="PLAY" Height="25" Width="50" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Click="PlayButton_Click" />
                 <Button x:Name="btnStop" Content="STOP" Height="25" Width="50" VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Click="StopButton_Click" IsEnabled="False" />
